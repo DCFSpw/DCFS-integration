@@ -1,3 +1,7 @@
-FROM golang:1.19
+FROM ubuntu
+
+RUN apt update
+RUN apt install golang -y
+
 WORKDIR /mnt
-CMD [ "dcfs-backend" ]
+CMD chmod +x /mnt/dcfs-backend; /mnt/dcfs-backend

@@ -23,6 +23,7 @@ services:
     volumes:
     - ./nginx/site-confs:/config/nginx/site-confs
     - ./nginx/proxy-confs:/config/nginx/proxy-confs
+    - ./nginx/cert/cloudflare.ini:/config/dns-conf/cloudflare.ini
     - /home/flatly/apps/www:/config/www
     - /home/flatly/apps/swag:/config
     ports:
@@ -48,6 +49,8 @@ services:
     restart: unless-stopped
     volumes:
     - /home/flatly/apps/jenkins:/var/jenkins_home
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   phpmyadmin:
     container_name: phpmyadmin
