@@ -1,0 +1,100 @@
+version: '2.0'
+services:
+
+  mariadb:
+    container_name: 'mariadb'
+    image: mariadb:latest
+    networks: 
+    - dcfs
+    environment:
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: 'true'
+    restart: unless-stopped
+    volumes:
+      - /home/flatly/apps/mariadb:/var/lib/mysql
+
+  swag:
+    container_name: swag
+    image: ghcr.io/linuxserver/swag
+    networks:
+    - dcfs
+    cap_add:
+    - NET_ADMIN
+    restart: unless-stopped
+    volumes:
+    - ./nginx/site-confs:/config/nginx/site-confs
+    - ./nginx/proxy-confs:/config/nginx/proxy-confs
+    - /home/flatly/apps/www:/config/www
+    - /home/flatly/apps/swag:/config
+    ports:
+    - 443:443
+    - 80:80
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - TZ=Europe/Warsaw
+    - URL=dcfs.pw
+    - SUBDOMAINS=www,develop,jenkins,phpmyadmin,backend,backend-develop
+    - VALIDATION=dns
+    - DNSPLUGIN=cloudflare
+    - DUCKDNSTOKEN=e68c855a-e1d6-4da3-ac66-0443bc4bf250
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+  jenkins:
+    container_name: jenkins
+    image: jenkins/jenkins:lts
+    networks:
+    - dcfs
+    restart: unless-stopped
+    volumes:
+    - /home/flatly/apps/jenkins:/var/jenkins_home
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin
+    networks:
+    - dcfs
+    restart: unless-stopped
+    environment:
+      PMA_HOST: 'mariadb'
+
+  worker:
+    container_name: worker
+    build:
+      context: ./scripts
+      dockerfile: ../containers/ci_worker.Dockerfile
+    volumes:
+      - /home/flatly/apps/backend:/mnt/backend
+      - /home/flatly/apps/front-cache:/mnt/front-cache
+      - /home/flatly/apps/www:/mnt/frontend
+    image: worker
+    networks: 
+      - dcfs
+    restart: unless-stopped
+
+  backend:
+    container_name: backend
+    build:
+      context: ./scripts
+      dockerfile: ../containers/go.Dockerfile
+    volumes:
+      - /home/flatly/apps/backend/main:/mnt
+    image: go
+    networks: 
+      - dcfs
+    restart: unless-stopped
+
+  backend-develop:
+    container_name: backend-develop
+    build:
+      context: ./scripts
+      dockerfile: ../containers/go.Dockerfile
+    volumes:
+      - /home/flatly/apps/backend/develop:/mnt
+    image: go
+    networks: 
+      - dcfs
+    restart: unless-stopped
+
+networks:
+  dcfs:
